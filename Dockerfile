@@ -1,25 +1,20 @@
-FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
+ARG UBUNTU_CUDA_VERSION=11.7.1-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:$UBUNTU_CUDA_VERSION
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES compute,utility,video
+ENV NVIDIA_DRIVER_CAPABILITIES all
 
 # Update and install dependencies
-RUN apt-get update && apt-get install -y apt-utils
-RUN apt-get install -y --no-install-recommends --fix-missing \
+RUN apt-get update && apt-get -q install -y --no-install-recommends --fix-missing \
     automake \
     autoconf \
     build-essential \
-    curl \
     git \
-    libbz2-1.0 \
+    libbz2-dev \
     libegl1 \
-    libegl1-mesa \
-    libegl-dev \
-    libegl1-mesa-dev \
     libfontconfig1 \
-    libgl1-mesa-glx \
-    libgles2-mesa-dev \
+    libgl1 \
     libglvnd-dev \
     libgtk-3-0 \
     libsm6 \
@@ -40,17 +35,23 @@ RUN apt-get install -y --no-install-recommends --fix-missing \
     wget \
     python3 \
     python3-pip
-RUN apt-get install -y --no-install-recommends --fix-missing \
+RUN apt-get -q install -y --no-install-recommends --fix-missing \
     x11proto-dev \
     x11proto-gl-dev \
     xvfb
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install Blender
-RUN wget https://mirror.clarkson.edu/blender/release/Blender3.6/blender-3.6.18-linux-x64.tar.xz -O /tmp/blender.tar.xz \
-    && tar -xvf /tmp/blender.tar.xz -C /opt/ \
-    && mv /opt/blender-3.6.18-linux-x64 /opt/blender \
-    && rm /tmp/blender.tar.xz
+# Add build arguments
+ARG BLENDER_VERSION=3.6.18
+ARG BLENDER_MIRROR_URL=https://mirror.clarkson.edu/blender/release
+
+# Update Blender installation to use both arguments
+RUN echo "Blender URL: ${BLENDER_MIRROR_URL}/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+RUN wget --no-verbose --show-progress --progress=dot:giga \
+    ${BLENDER_MIRROR_URL}/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz -O /tmp/blender.tar.xz \
+        && tar -xf /tmp/blender.tar.xz -C /opt/ \
+        && mv /opt/blender-${BLENDER_VERSION}-linux-x64 /opt/blender \
+        && rm /tmp/blender.tar.xz
 
 # Set Blender path
 ENV PATH="/opt/blender:$PATH"
@@ -71,3 +72,6 @@ RUN git clone https://github.com/NVIDIA/libglvnd.git /tmp/libglvnd \
     }" > /usr/share/glvnd/egl_vendor.d/10_nvidia.json \
     && cd / \
     && rm -rf /tmp/libglvnd
+
+ENV EGL_DRIVER=nvidia
+ENV __EGL_VENDOR_LIBRARY_DIRS=/usr/share/glvnd/egl_vendor.d
