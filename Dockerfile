@@ -2,8 +2,8 @@ ARG UBUNTU_CUDA_VERSION=11.7.1-cudnn8-devel-ubuntu20.04
 FROM nvidia/cuda:$UBUNTU_CUDA_VERSION
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES all
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=all
 
 # Update and install dependencies
 RUN apt-get update && apt-get -q install -y --no-install-recommends --fix-missing \
@@ -43,7 +43,7 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Add build arguments
 ARG BLENDER_VERSION=3.6.21
-ARG BLENDER_MIRROR_URL=https://mirror.clarkson.edu/blender/release
+ARG BLENDER_MIRROR_URL=https://download.blender.org/release
 
 # Update Blender installation to use both arguments
 RUN echo "Blender URL: ${BLENDER_MIRROR_URL}/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
@@ -55,6 +55,8 @@ RUN wget --no-verbose --show-progress --progress=dot:giga \
 
 # Set Blender path
 ENV PATH="/opt/blender:$PATH"
+
+ENV EGL_DRIVER=nvidia
 
 # Clone and build libglvnd for NVIDIA EGL support
 RUN git clone https://github.com/NVIDIA/libglvnd.git /tmp/libglvnd \
@@ -75,6 +77,16 @@ RUN git clone https://github.com/NVIDIA/libglvnd.git /tmp/libglvnd \
 
 ENV EGL_DRIVER=nvidia
 ENV __EGL_VENDOR_LIBRARY_DIRS=/usr/share/glvnd/egl_vendor.d
+ENV BLENDER_USER_SCRIPTS=/opt/blender/${BLENDER_VERSION%.*}/scripts/
 
-# Keep container running
-CMD ["tail", "-f", "/dev/null"]
+# Create a low-privilege user
+RUN printf 'CREATE_MAIL_SPOOL=no' >> /etc/default/useradd \
+    && mkdir -p /home/runner/scripts \
+    && groupadd runner \
+    && useradd runner -g runner -d /home/runner \
+    && chown runner:runner /home/runner /home/runner/scripts
+
+COPY scripts/. /home/runner/scripts/
+RUN chmod +x /home/runner/scripts/*
+
+ENTRYPOINT ["/bin/bash", "/home/runner/scripts/entrypoint.sh"]
