@@ -42,7 +42,7 @@ RUN apt-get -q install -y --no-install-recommends --fix-missing \
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Add build arguments
-ARG BLENDER_VERSION=3.6.18
+ARG BLENDER_VERSION=3.6.21
 ARG BLENDER_MIRROR_URL=https://mirror.clarkson.edu/blender/release
 
 # Update Blender installation to use both arguments
@@ -75,3 +75,6 @@ RUN git clone https://github.com/NVIDIA/libglvnd.git /tmp/libglvnd \
 
 ENV EGL_DRIVER=nvidia
 ENV __EGL_VENDOR_LIBRARY_DIRS=/usr/share/glvnd/egl_vendor.d
+
+# Keep container running
+CMD ["tail", "-f", "/dev/null"]
