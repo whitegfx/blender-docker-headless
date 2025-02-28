@@ -3,7 +3,8 @@ import sys
 import os
 from pathlib import Path
 
-mainBlendFile=bpy.data.filepath
+mainBlendFile = bpy.data.filepath
+
 
 def enable_gpu(device_type: str = "CUDA") -> None:
     preferences = bpy.context.preferences
@@ -15,6 +16,7 @@ def enable_gpu(device_type: str = "CUDA") -> None:
         device.use = True
     cycles_preferences.compute_device_type = device_type
     bpy.context.scene.cycles.device = "GPU"
+
 
 def print_render_settings():
     scene = bpy.context.scene
@@ -59,44 +61,53 @@ def print_render_settings():
     
     print("\n=== End of Render Settings ===")
 
-library_path = "/home/runner/base_scene/interier/materials.blend"  # Change this to your actual folder
 
-# Define the correct path to the materials.blend file
-correct_path = library_path  # Update to the correct path
-folder_path = "/home/runner/to-render"  # Update to your folder containing .blend files
+def change_asset_path(wrong_path="please provide the org asset path", correct_path="", in_folder="./"):
+    check_fname = ".asset-path-changed-completed"
+    file_path = Path(check_fname)
+    if file_path.exists():  # Negation check
+        return
 
-# Check if the correct path exists
-if os.path.exists(correct_path):
-    # List all .blend files in the specified folder
-    blend_files = [f for f in os.listdir(folder_path) if f.endswith(".blend")]
-    
-    # Loop through all .blend files in the folder
-    for blend_file in blend_files:
-        blend_file_path = os.path.join(folder_path, blend_file)
-        print(f"Processing: {blend_file_path}")
-        
-        # Open the current .blend file
-        bpy.ops.wm.open_mainfile(filepath=blend_file_path)
-        
-        # Loop through all libraries in the current .blend file
-        for lib in bpy.data.libraries:
-            print(f"Processing library: {lib.name}")
-            
-            # Check if the library path contains "materials.blend"
-            if "materials.blend" in lib.filepath:
-                # Update the library path to the correct path
-                print(f"Found: {lib.filepath}")
-                lib.filepath = correct_path
-                print(f"Library path updated to: {correct_path}")
-                break
-        else:
-            print(f"Linked materials.blend not found in library for {blend_file_path}")
-        
-        # Save the updated .blend file
-        bpy.ops.wm.save_mainfile()
-        print(f"Saved updated file: {blend_file_path}")
-else:
-    print(f"Error: The path '{correct_path}' does not exist.")
+    # Check if the correct path exists
+    if os.path.exists(correct_path):
+        # List all .blend files in the specified folder
+        blend_files = [f for f in os.listdir(in_folder) if f.endswith(".blend")]
+
+        # Loop through all .blend files in the folder
+        for blend_file in blend_files:
+            blend_file_path = os.path.join(in_folder, blend_file)
+            print(f"Processing: {blend_file_path}")
+
+            # Open the current .blend file
+            bpy.ops.wm.open_mainfile(filepath=blend_file_path)
+
+            # Loop through all libraries in the current .blend file
+            for lib in bpy.data.libraries:
+                print(f"Processing library: {lib.name}")
+
+                # Check if the library path contains "materials.blend"
+                if wrong_path in lib.filepath:
+                    # Update the library path to the correct path
+                    print(f"Found: {lib.filepath}")
+                    lib.filepath = correct_path
+                    print(f"Library path updated to: {correct_path}")
+                    break
+            else:
+                print(f"Linked materials.blend not found in library for {blend_file_path}")
+
+            # Save the updated .blend file
+            bpy.ops.wm.save_mainfile()
+            print(f"Saved updated file: {blend_file_path}")
+            # Create an empty file
+            file_path.touch()  # This creates the empty file if it doesn't exist
+    else:
+        print(f"Error: The path '{correct_path}' does not exist.")
+
+
+# do material replacement
+src_blend_path = "/home/runner/to-render"  # Update to your folder containing .blend files
+materials_file = "/home/runner/base_scene/interier/materials.blend"  # Change this to your actual folder
+change_asset_path("materials.blend", materials_file, src_blend_path)
 
 # Load the original file
 bpy.ops.wm.open_mainfile(filepath=mainBlendFile)
@@ -116,8 +127,9 @@ else:
     print("No start/end frame arguments found. Using .blend file settings.")
 
 
-
+# check camera
 camera_name = None
+
 if "--camera" in sys.argv:
     # Get the camera name (next item after --camera)
     camera_index = sys.argv.index("--camera") + 1
@@ -174,4 +186,4 @@ print_render_settings()
 # Render animation (since we now respect the start and end frames)
 bpy.ops.render.render(animation=True)
 
-#blender --factory-startup -noaudio -b CP_22_L_P_first_variations_STOLY_CROSS.blend -s 0 -e 0 --python ../scripts/render_cycles.py
+# blender --factory-startup -noaudio -b CP_22_L_P_first_variations_STOLY_CROSS.blend -s 0 -e 0 --python ../scripts/render_cycles.py

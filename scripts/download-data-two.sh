@@ -21,7 +21,7 @@ if [ -n "${DATA_TWO_URL:-}" ]; then
   cp -r "$TEMP_EXTRACT_DIR/runner/." /home/runner/ 2>/dev/null || true
 
   rm "$TEMP_ZIP"
-    touch /home/runner/.download-datatwo-complete
+    touch /home/runner/.download-data-two-complete
   echo "[INFO] Download and extraction complete!"
 else
     echo "[WARN] DATA_TWO_URL environment variable not set. Skipping file download."

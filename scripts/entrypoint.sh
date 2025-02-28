@@ -11,6 +11,7 @@ if [ ! -f ".download-addons-complete" ] ; then
     bash $SCRIPT || true
 fi
 
+cd /home/runner  || true
 SCRIPT=scripts/download-data-one.sh
 if [ ! -f ".download-data-one-complete" ] ; then
     echo "[INFO] Running download-data-one script..."
@@ -18,6 +19,7 @@ if [ ! -f ".download-data-one-complete" ] ; then
     bash $SCRIPT || true
 fi
 
+cd /home/runner  || true
 SCRIPT=scripts/download-data-two.sh
 if [ ! -f ".download-data-two-complete" ] ; then
     echo "[INFO] Running download-data-two script..."

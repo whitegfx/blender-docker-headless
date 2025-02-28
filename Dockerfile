@@ -91,6 +91,7 @@ RUN chmod +x /home/runner/scripts/*
 
 EXPOSE 8080
 
+# Install simple web based file browser
 ENV FILEBROWSER_DIRECTORY='/home/runner'
 RUN wget -qO- https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
 
