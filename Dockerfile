@@ -89,4 +89,9 @@ RUN printf 'CREATE_MAIL_SPOOL=no' >> /etc/default/useradd \
 COPY scripts/. /home/runner/scripts/
 RUN chmod +x /home/runner/scripts/*
 
+EXPOSE 8080
+
+ENV FILEBROWSER_DIRECTORY='/home/runner'
+RUN wget -qO- https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
+
 ENTRYPOINT ["/bin/bash", "/home/runner/scripts/entrypoint.sh"]
