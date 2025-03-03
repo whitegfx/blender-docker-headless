@@ -9,11 +9,22 @@ mainBlendFile = bpy.data.filepath
 def enable_gpu(device_type: str = "CUDA") -> None:
     preferences = bpy.context.preferences
     cycles_preferences = preferences.addons["cycles"].preferences
+
+    # Refresh and get devices
     cycles_preferences.refresh_devices()
-    devices = cycles_preferences.get_devices_for_type(compute_device_type=device_type)
-    for device in devices:
-        print(f"Enabling device: {device.name}")
-        device.use = True
+    all_devices = cycles_preferences.devices  # Get all devices (CPU + GPU)
+    gpu_devices = cycles_preferences.get_devices_for_type(compute_device_type=device_type)
+
+    # Enable only GPU devices and disable CPU
+    for device in all_devices:
+        if device.type == "CPU":
+            print(f"Disabling CPU device: {device.name}")
+            device.use = False  # Disable CPU rendering
+        elif device.type == device_type:
+            print(f"Enabling GPU device: {device.name}")
+            device.use = True  # Enable GPU rendering
+
+    # Set the compute device type to GPU
     cycles_preferences.compute_device_type = device_type
     bpy.context.scene.cycles.device = "GPU"
 
@@ -24,12 +35,14 @@ def print_render_settings():
 
     print("\n=== Render Settings ===")
     print(f"Render Engine: {render.engine}")
-    
+
+    print(f"Render device: {bpy.context.scene.cycles.device}")
+
     # Resolution settings
     print("\n--- Resolution ---")
     print(f"Resolution: {render.resolution_x} x {render.resolution_y}")
     print(f"Resolution Percentage: {render.resolution_percentage}%")
-    
+
     # Sampling settings (for Cycles only)
     if render.engine == 'CYCLES':
         cycles = scene.cycles  # Cycles render settings
@@ -45,7 +58,7 @@ def print_render_settings():
         print(f"Glossy Bounces: {cycles.glossy_bounces}")
         print(f"Transmission Bounces: {cycles.transmission_bounces}")
         print(f"Volume Bounces: {cycles.volume_bounces}")
-        
+
         # Additional Cycles settings
         print("\n--- Other Cycles Settings ---")
         print(f"Use Adaptive Sampling: {getattr(cycles, 'use_adaptive_sampling', 'N/A')}")
@@ -58,8 +71,26 @@ def print_render_settings():
     print(f"File Format: {render.image_settings.file_format}")
     print(f"Color Mode: {render.image_settings.color_mode}")
     print(f"Compression: {render.image_settings.compression}%")
-    
+
     print("\n=== End of Render Settings ===")
+
+
+def disable_png_compression():
+    scene = bpy.context.scene
+    render_settings = scene.render
+    image_settings = render_settings.image_settings
+
+    # Ensure the output format is PNG
+    image_settings.file_format = "PNG"
+
+    # Set PNG compression to 0 (no compression)
+    image_settings.compression = 0
+
+    print("PNG compression disabled (set to 0).")
+
+
+# Run the function
+disable_png_compression()
 
 
 def change_asset_path(wrong_path="please provide the org asset path", correct_path="", in_folder="./"):
@@ -113,7 +144,7 @@ change_asset_path("materials.blend", materials_file, src_blend_path)
 bpy.ops.wm.open_mainfile(filepath=mainBlendFile)
 
 # Enable GPU rendering
-enable_gpu()
+enable_gpu("CUDA")
 
 # Read command-line arguments to get start and end frames
 argv = sys.argv
@@ -125,7 +156,6 @@ if "-s" in argv and "-e" in argv:
     bpy.context.scene.frame_end = end_frame
 else:
     print("No start/end frame arguments found. Using .blend file settings.")
-
 
 # check camera
 camera_name = None
@@ -140,7 +170,7 @@ if "--camera" in sys.argv:
 if camera_name:
     # Try to find the camera by the name passed from the command line
     camera = bpy.data.objects.get(camera_name)
-    
+
     if camera:
         bpy.context.scene.camera = camera
         print(f"Camera '{camera_name}' successfully assigned.")
@@ -155,7 +185,6 @@ else:
     else:
         print("Error: No camera found in the scene.")
 
-
 # Set the rendering engine to Cycles
 bpy.context.scene.render.engine = "CYCLES"
 bpy.context.scene.render.resolution_percentage = 100
@@ -168,7 +197,7 @@ if addon_name not in bpy.context.preferences.addons:
     print(f"Activated add-on: {addon_name}")
 else:
     print(f"Add-on {addon_name} is already enabled.")
-    
+
 # List all enabled addons
 enabled_addons = bpy.context.preferences.addons.keys()
 
@@ -176,7 +205,7 @@ enabled_addons = bpy.context.preferences.addons.keys()
 print("Enabled Add-ons:")
 for addon in enabled_addons:
     print(f"- {addon}")
-    
+
 # Set the output file path
 output_path = "/home/runner/output"
 bpy.context.scene.render.filepath = output_path
@@ -184,8 +213,33 @@ bpy.context.scene.render.filepath = output_path
 # Run the function to print settings
 print_render_settings()
 
+
+def list_render_devices():
+    # Ensure Cycles is enabled
+    if 'cycles' not in bpy.context.preferences.addons:
+        print("Cycles add-on is not enabled. Please enable it in Blender preferences.")
+        return
+
+    # Access Cycles preferences
+    cycles_prefs = bpy.context.preferences.addons['cycles'].preferences
+
+    # Refresh devices to make sure they are detected
+    cycles_prefs.get_devices()
+
+    if not hasattr(cycles_prefs, "devices"):
+        print("No render devices found. Ensure GPU is properly configured.")
+        return
+
+    print("\n--- Available Render Devices ---")
+    for device in cycles_prefs.devices:
+        print(f"Device: {device.name}, Type: {device.type}, Enabled: {device.use}")
+
+
+# Run the function
+list_render_devices()
+disable_png_compression()
+
 # Render animation (since we now respect the start and end frames)
 bpy.ops.render.render(animation=True)
-
 
 # blender --factory-startup -noaudio -b cross_2_5.blend -s 0 -e 696 -y --python ../scripts/render_cycles.py -- --camera main
