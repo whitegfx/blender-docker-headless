@@ -158,6 +158,7 @@ else:
 
 # Set the rendering engine to Cycles
 bpy.context.scene.render.engine = "CYCLES"
+bpy.context.scene.render.resolution_percentage = 100
 
 addon_name = "ANIMAX"  # Replace with the actual add-on module name
 
@@ -186,4 +187,5 @@ print_render_settings()
 # Render animation (since we now respect the start and end frames)
 bpy.ops.render.render(animation=True)
 
-# blender --factory-startup -noaudio -b CP_22_L_P_first_variations_STOLY_CROSS.blend -s 0 -e 0 --python ../scripts/render_cycles.py
+
+# blender --factory-startup -noaudio -b cross_2_5.blend -s 0 -e 696 -y --python ../scripts/render_cycles.py -- --camera main
