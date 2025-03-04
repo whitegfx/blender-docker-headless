@@ -30,6 +30,7 @@ RUN apt-get update && apt-get -q install -y --no-install-recommends --fix-missin
     libxrandr2 \
     libxrender1 \
     libxxf86vm1 \
+    libnvidia-gl-565-server \
     mesa-utils \
     pkg-config \
     wget \

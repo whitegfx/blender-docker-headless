@@ -4,8 +4,8 @@ set -uxo pipefail
 
 if [ -n "${DATA_ONE_URL:-}" ]; then
   # Define variables
-  TEMP_ZIP="/tmp/data.zip"
-  TEMP_EXTRACT_DIR="/tmp/unzip_data_temp"
+  TEMP_ZIP="/tmp/data_one.zip"
+  TEMP_EXTRACT_DIR="/tmp/unzip_data_one_temp"
 
   # Download the ZIP file
   echo "[INFO] Downloading DATA_URL file from $DATA_ONE_URL..."
@@ -21,7 +21,7 @@ if [ -n "${DATA_ONE_URL:-}" ]; then
   cp -r "$TEMP_EXTRACT_DIR/runner/." /home/runner/ 2>/dev/null || true
 
   rm "$TEMP_ZIP"
-    touch /home/runner/.download-data-one-complete
+  touch /home/runner/.download-data-one-complete
   echo "[INFO] Download and extraction complete!"
 else
     echo "[WARN] DATA_ONE_URL environment variable not set. Skipping file download."

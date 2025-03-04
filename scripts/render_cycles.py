@@ -6,14 +6,14 @@ from pathlib import Path
 mainBlendFile = bpy.data.filepath
 
 
-def enable_gpu(device_type: str = "CUDA") -> None:
+def enable_gpu(device_type: str = "CUDA", tile_size=2048, odin_quality='ACCURATE', odin_prefilter='RGB_ALBEDO_NORMAL') -> None:
     preferences = bpy.context.preferences
     cycles_preferences = preferences.addons["cycles"].preferences
 
     # Refresh and get devices
     cycles_preferences.refresh_devices()
     all_devices = cycles_preferences.devices  # Get all devices (CPU + GPU)
-    gpu_devices = cycles_preferences.get_devices_for_type(compute_device_type=device_type)
+    # gpu_devices = cycles_preferences.get_devices_for_type(compute_device_type=device_type)
 
     # Enable only GPU devices and disable CPU
     for device in all_devices:
@@ -27,6 +27,21 @@ def enable_gpu(device_type: str = "CUDA") -> None:
     # Set the compute device type to GPU
     cycles_preferences.compute_device_type = device_type
     bpy.context.scene.cycles.device = "GPU"
+
+    # Set tile size
+    bpy.context.scene.cycles.tile_size = tile_size
+    bpy.context.scene.cycles.use_denoising = True
+    bpy.context.scene.cycles.use_auto_tile = False
+
+    bpy.context.scene.cycles.denoising_input_passes = odin_prefilter
+    bpy.context.scene.cycles.denoising_prefilter = odin_quality
+
+    # Enable OptiX or OIDN denoising if selected
+    if device_type == 'OPTIX':
+        bpy.context.scene.cycles.denoiser = 'OPTIX'
+        bpy.context.scene.cycles.denoising_use_gpu = True
+    else:
+        bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
 
 
 def print_render_settings():
@@ -61,8 +76,14 @@ def print_render_settings():
 
         # Additional Cycles settings
         print("\n--- Other Cycles Settings ---")
-        print(f"Use Adaptive Sampling: {getattr(cycles, 'use_adaptive_sampling', 'N/A')}")
         print(f"Use Denoising: {getattr(cycles, 'use_denoising', 'N/A')}")
+        print(f"Denoiser: {getattr(cycles, 'denoiser', 'N/A')}")
+        print(f"Denoiser inout passes: {getattr(cycles, 'denoising_input_passes', 'N/A')}")
+        print(f"Denoiser denoising_prefilter: {getattr(cycles, 'denoising_prefilter', 'N/A')}")
+        print(f"Denoiser denoising_use_gpu: {getattr(cycles, 'denoising_use_gpu', 'N/A')}")
+        print(f"use_auto_tile: {getattr(cycles, 'use_auto_tile', 'N/A')}")
+        print(f"Tile size: {getattr(cycles, 'tile_size', 'N/A')}")
+        print(f"Use Adaptive Sampling: {getattr(cycles, 'use_adaptive_sampling', 'N/A')}")
         print(f"Integrator: {getattr(cycles, 'integrator', 'N/A')}")
 
     # Output settings
@@ -99,6 +120,7 @@ def change_asset_path(wrong_path="please provide the org asset path", correct_pa
     if file_path.exists():  # Negation check
         return
 
+    print(f"Changing assets paths")
     # Check if the correct path exists
     if os.path.exists(correct_path):
         # List all .blend files in the specified folder
@@ -144,7 +166,7 @@ change_asset_path("materials.blend", materials_file, src_blend_path)
 bpy.ops.wm.open_mainfile(filepath=mainBlendFile)
 
 # Enable GPU rendering
-enable_gpu("CUDA")
+enable_gpu("OPTIX", 2048, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
 
 # Read command-line arguments to get start and end frames
 argv = sys.argv
@@ -243,3 +265,4 @@ disable_png_compression()
 bpy.ops.render.render(animation=True)
 
 # blender --factory-startup -noaudio -b cross_2_5.blend -s 0 -e 696 -y --python ../scripts/render_cycles.py -- --camera main
+# blender --factory-startup -noaudio -b cross_2_5.blend -s 380 -e 380 -y --python ../scripts/render_cycles.py -- --camera main
