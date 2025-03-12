@@ -1,6 +1,7 @@
 import bpy
 import sys
 import os
+import hashlib
 from pathlib import Path
 
 mainBlendFile = bpy.data.filepath
@@ -42,6 +43,13 @@ def enable_gpu(device_type: str = "CUDA", tile_size=2048, odin_quality='ACCURATE
         bpy.context.scene.cycles.denoising_use_gpu = True
     else:
         bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
+
+    # Disable render region
+    bpy.context.scene.render.use_crop_to_border = False
+    bpy.context.scene.render.border_min_x = 0.0
+    bpy.context.scene.render.border_min_y = 0.0
+    bpy.context.scene.render.border_max_x = 1.0
+    bpy.context.scene.render.border_max_y = 1.0
 
 
 def print_render_settings():
@@ -105,7 +113,7 @@ def disable_png_compression():
     image_settings.file_format = "PNG"
 
     # Set PNG compression to 0 (no compression)
-    image_settings.compression = 0
+    image_settings.compression = 60
 
     print("PNG compression disabled (set to 0).")
 
@@ -115,7 +123,8 @@ disable_png_compression()
 
 
 def change_asset_path(wrong_path="please provide the org asset path", correct_path="", in_folder="./"):
-    check_fname = ".asset-path-changed-completed"
+    hash_value = hashlib.md5(wrong_path.encode()).hexdigest()
+    check_fname = ".asset-path-changed-completed"+hash_value
     file_path = Path(check_fname)
     if file_path.exists():  # Negation check
         return
@@ -162,11 +171,15 @@ src_blend_path = "/home/runner/to-render"  # Update to your folder containing .b
 materials_file = "/home/runner/base_scene/interier/materials.blend"  # Change this to your actual folder
 change_asset_path("materials.blend", materials_file, src_blend_path)
 
+materials_file = "/home/runner/base_scene/interier/material-zidle.blend"  # Change this to your actual folder
+change_asset_path("material-zidle.blend", materials_file, src_blend_path)
+
 # Load the original file
 bpy.ops.wm.open_mainfile(filepath=mainBlendFile)
 
 # Enable GPU rendering
-enable_gpu("OPTIX", 2048, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
+enable_gpu("OPTIX", 2560, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
+# enable_gpu("OPTIX", 1920, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
 
 # Read command-line arguments to get start and end frames
 argv = sys.argv
@@ -208,8 +221,14 @@ else:
         print("Error: No camera found in the scene.")
 
 # Set the rendering engine to Cycles
-bpy.context.scene.render.engine = "CYCLES"
-bpy.context.scene.render.resolution_percentage = 100
+render = bpy.context.scene.render
+render.engine = "CYCLES"
+render.resolution_percentage = 100
+render.resolution_x = 1920
+render.resolution_y = 1080
+
+render.resolution_x = 2560
+render.resolution_y = 1440
 
 addon_name = "ANIMAX"  # Replace with the actual add-on module name
 
@@ -229,7 +248,7 @@ for addon in enabled_addons:
     print(f"- {addon}")
 
 # Set the output file path
-output_path = "/home/runner/output"
+output_path = "/home/runner/output/frames/"
 bpy.context.scene.render.filepath = output_path
 
 # Run the function to print settings
@@ -257,6 +276,16 @@ def list_render_devices():
         print(f"Device: {device.name}, Type: {device.type}, Enabled: {device.use}")
 
 
+# def save_progress(scene, depsgraph):
+#     frame = scene.frame_current
+#     if frame % 10 == 0:  # Run every 10 frames
+#         with open("/home/runner/output/render_progress.txt", "w") as f:
+#             f.write(f"Rendered Frame: {frame}\n")
+#
+#
+# bpy.app.handlers.render_post.append(save_progress)
+
+
 # Run the function
 list_render_devices()
 disable_png_compression()
@@ -265,4 +294,14 @@ disable_png_compression()
 bpy.ops.render.render(animation=True)
 
 # blender --factory-startup -noaudio -b cross_2_5.blend -s 0 -e 696 -y --python ../scripts/render_cycles.py -- --camera main
-# blender --factory-startup -noaudio -b cross_2_5.blend -s 380 -e 380 -y --python ../scripts/render_cycles.py -- --camera main
+# blender --factory-startup -noaudio -b cross_2_5.blend -s 500 -e 500 -y --python ../scripts/render_cycles.py -- --camera main
+# blender --factory-startup -noaudio -b gate_2_1.blend -s 20 -e 20 -y --python ../scripts/render_cycles.py -- --camera main
+
+
+# blender --factory-startup -noaudio -b gate_2_1.blend -s 0 -e 782 -y --python ../scripts/render_cycles.py -- --camera main
+# blender --factory-startup -noaudio -b cross_2_5.blend -s 0 -e 782 -y --python ../scripts/render_cycles.py -- --camera main
+# blender --factory-startup -noaudio -b cross_2_5.blend -s 500 -e 500 -y --python ../scripts/render_cycles.py -- --camera main
+
+# TODO
+# resplution as argument
+# blender render progress
