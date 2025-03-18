@@ -6,8 +6,19 @@ from pathlib import Path
 
 mainBlendFile = bpy.data.filepath
 
+# defaults
+device_type = 'METAL'
+device_name = ''
+output_path = "/home/runner/output/frames/"
+fallback_output_path = "output/frames/"
+resolution_x = 1024
+resolution_y = 768
+samples = 200
 
-def enable_gpu(device_type: str = "CUDA", tile_size=2048, odin_quality='ACCURATE', odin_prefilter='RGB_ALBEDO_NORMAL') -> None:
+# sys.exit(1)
+
+
+def enable_gpu(device_type: str = "CUDA", device_name: str = "", tile_size=2048, odin_quality='ACCURATE', odin_prefilter='RGB_ALBEDO_NORMAL') -> None:
     preferences = bpy.context.preferences
     cycles_preferences = preferences.addons["cycles"].preferences
 
@@ -16,15 +27,26 @@ def enable_gpu(device_type: str = "CUDA", tile_size=2048, odin_quality='ACCURATE
     all_devices = cycles_preferences.devices  # Get all devices (CPU + GPU)
     # gpu_devices = cycles_preferences.get_devices_for_type(compute_device_type=device_type)
 
+    for i, col in enumerate(all_devices):
+        print(f"{i}: {col.name}")
+        print(f"{i}: {col.type}")
+
     # Enable only GPU devices and disable CPU
     for device in all_devices:
-        if device.type == "CPU":
-            print(f"Disabling CPU device: {device.name}")
+        print(device.type == device_type)
+        print(device.name.find(device_name))
+        if device.type != device_type:
+            print(f"Disabling device {device.type} : {device.name}\n")
             device.use = False  # Disable CPU rendering
-        elif device.type == device_type:
-            print(f"Enabling GPU device: {device.name}")
+        elif device.type == device_type and (device_name == "" or device.name.find(device_name) != -1):
+            print(f"Enabling GPU device: {device.name}\n")
             device.use = True  # Enable GPU rendering
+        else:
+            print(f"Disabling device {device.type} : {device.name}\n")
+            device.use = False  # Enable GPU rendering
 
+
+    # sys.exit(1)
     # Set the compute device type to GPU
     cycles_preferences.compute_device_type = device_type
     bpy.context.scene.cycles.device = "GPU"
@@ -65,7 +87,6 @@ def print_render_settings():
     print("\n--- Resolution ---")
     print(f"Resolution: {render.resolution_x} x {render.resolution_y}")
     print(f"Resolution Percentage: {render.resolution_percentage}%")
-
     # Sampling settings (for Cycles only)
     if render.engine == 'CYCLES':
         cycles = scene.cycles  # Cycles render settings
@@ -104,7 +125,7 @@ def print_render_settings():
     print("\n=== End of Render Settings ===")
 
 
-def disable_png_compression():
+def set_png_compression():
     scene = bpy.context.scene
     render_settings = scene.render
     image_settings = render_settings.image_settings
@@ -115,11 +136,7 @@ def disable_png_compression():
     # Set PNG compression to 0 (no compression)
     image_settings.compression = 60
 
-    print("PNG compression disabled (set to 0).")
-
-
-# Run the function
-disable_png_compression()
+    print(f"PNG compression disabled (set to {image_settings.compression}).")
 
 
 def change_asset_path(wrong_path="please provide the org asset path", correct_path="", in_folder="./"):
@@ -166,6 +183,10 @@ def change_asset_path(wrong_path="please provide the org asset path", correct_pa
         print(f"Error: The path '{correct_path}' does not exist.")
 
 
+src_blend_path = "/home/runner/to-render/tests"  # Update to your folder containing .blend files
+materials_file = "/home/runner/base_scene/interier/materials.blend"  # Change this to your actual folder
+change_asset_path("materials.blend", materials_file, src_blend_path)
+
 # do material replacement
 src_blend_path = "/home/runner/to-render"  # Update to your folder containing .blend files
 materials_file = "/home/runner/base_scene/interier/materials.blend"  # Change this to your actual folder
@@ -174,11 +195,49 @@ change_asset_path("materials.blend", materials_file, src_blend_path)
 materials_file = "/home/runner/base_scene/interier/material-zidle.blend"  # Change this to your actual folder
 change_asset_path("material-zidle.blend", materials_file, src_blend_path)
 
+materials_file = "/home/runner/base_scene/interier/binder-collections.blend"  # Change this to your actual folder
+change_asset_path("binder-collections.blend", materials_file, src_blend_path)
+
 # Load the original file
 bpy.ops.wm.open_mainfile(filepath=mainBlendFile)
 
+# check device_type
+if "--device-type" in sys.argv:
+    arg_index = sys.argv.index("--device-type") + 1
+    if arg_index < len(sys.argv):
+        device_type = sys.argv[arg_index]
+
+print(f"device_type {device_type}")
+
+# check device_name
+if "--device-name" in sys.argv:
+    arg_index = sys.argv.index("--device-name") + 1
+    if arg_index < len(sys.argv):
+        device_name = sys.argv[arg_index]
+
+print(f"device_name {device_name}")
+
+
+# checkrx and ry
+if "--rx" in sys.argv and "--ry" in sys.argv:
+    arg_index = sys.argv.index("--rx") + 1
+    if arg_index < len(sys.argv):
+        resolution_x = int(sys.argv[arg_index])
+    arg_index = sys.argv.index("--ry") + 1
+    if arg_index < len(sys.argv):
+        resolution_y = int(sys.argv[arg_index])
+
+# check samples
+if "--samples" in sys.argv:
+    arg_index = sys.argv.index("--samples") + 1
+    if arg_index < len(sys.argv):
+        samples = int(sys.argv[arg_index])
+
+
+print(f"device_name {device_name}")
+
 # Enable GPU rendering
-enable_gpu("OPTIX", 2560, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
+enable_gpu(device_type, device_name, 512, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
 # enable_gpu("OPTIX", 1920, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
 
 # Read command-line arguments to get start and end frames
@@ -221,14 +280,15 @@ else:
         print("Error: No camera found in the scene.")
 
 # Set the rendering engine to Cycles
+scene = bpy.context.scene
 render = bpy.context.scene.render
 render.engine = "CYCLES"
-render.resolution_percentage = 100
-render.resolution_x = 1920
-render.resolution_y = 1080
 
-render.resolution_x = 2560
-render.resolution_y = 1440
+
+render.resolution_percentage = 100
+render.resolution_x = resolution_x
+render.resolution_y = resolution_y
+scene.cycles.samples = samples
 
 addon_name = "ANIMAX"  # Replace with the actual add-on module name
 
@@ -248,8 +308,32 @@ for addon in enabled_addons:
     print(f"- {addon}")
 
 # Set the output file path
-output_path = "/home/runner/output/frames/"
-bpy.context.scene.render.filepath = output_path
+if not os.path.exists(output_path):
+    output_path = fallback_output_path
+    # If fallback_output_path doesn't exist, create it
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+        print(f"Created fallback directory: {output_path}")
+
+
+# Get the relative path from cwd to render_scene
+relative_path = os.path.relpath(mainBlendFile, os.getcwd())
+print(relative_path)
+formatted_path = relative_path.replace('/', '-').replace('.blend', '')
+print(formatted_path)
+
+# Combine output_path and relative_path
+full_path = os.path.join(output_path, formatted_path)
+
+# Check if the full path exists
+if not os.path.exists(full_path):
+    print(f"The path not exists {full_path}.")
+
+if not os.path.exists(full_path):
+    os.makedirs(full_path)
+    print(f"Created full_path directory: {full_path}")
+
+bpy.context.scene.render.filepath = full_path+'/'
 
 # Run the function to print settings
 print_render_settings()
@@ -288,7 +372,7 @@ def list_render_devices():
 
 # Run the function
 list_render_devices()
-disable_png_compression()
+set_png_compression()
 
 # Render animation (since we now respect the start and end frames)
 bpy.ops.render.render(animation=True)
@@ -302,6 +386,13 @@ bpy.ops.render.render(animation=True)
 # blender --factory-startup -noaudio -b cross_2_5.blend -s 0 -e 782 -y --python ../scripts/render_cycles.py -- --camera main
 # blender --factory-startup -noaudio -b cross_2_5.blend -s 500 -e 500 -y --python ../scripts/render_cycles.py -- --camera main
 
+
+# blender --factory-startup -noaudio -b to-render/gate_1_1.blend -s 621 -e 621 -y --python scripts/render_cycles.py -- --camera main
+# blender --factory-startup -noaudio -b to-render/gate_1_1.blend -s 0 -e 700 -y --python scripts/render_cycles.py -- --camera main
+
+#  ffmpeg -framerate 30 -i %04d.png -c:v prores_ks -profile:v 4 -pix_fmt yuv444p10le -r 30 output.mov
+
 # TODO
 # resplution as argument
 # blender render progress
+# render to uniq folders when run multiple bg processes
