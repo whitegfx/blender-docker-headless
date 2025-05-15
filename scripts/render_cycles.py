@@ -3,17 +3,40 @@ import sys
 import os
 import hashlib
 from pathlib import Path
+import platform
 
 mainBlendFile = bpy.data.filepath
+
+output_path=""
+libraries_path=""
+src_blend_path=""
+
+if platform.system() == "Linux":
+    # Linux-specific code (e.g. GPU rendering setup for CUDA/OptiX)
+    print("Running on Linux")
+    output_path = "/home/runner/output/frames/"
+    libraries_path="/home/runner/to-render/libraries/"
+    src_blend_path="/home/runner/to-render/"
+    # Setup for Linux GPU rendering
+elif platform.system() == "Darwin":
+    # macOS-specific code (e.g. fallback to CPU rendering or Metal)
+    print("Running on macOS")
+    output_path = "/Users/mbpro/Documents/bitbucket/blender-docker-headless/output/frames/"
+    libraries_path = "/Users/mbpro/Documents/bitbucket/blender-docker-headless/to-render/libraries/"
+    src_blend_path = "/Users/mbpro/Documents/bitbucket/blender-docker-headless/to-render/"
+    # Setup for macOS (e.g., Metal or CPU rendering)
+else:
+    print("Unsupported OS")
 
 # defaults
 device_type = 'METAL'
 device_name = ''
-output_path = "/home/runner/output/frames/"
 fallback_output_path = "output/frames/"
 resolution_x = 1024
 resolution_y = 768
 samples = 200
+resolution_percentage=100
+
 
 # sys.exit(1)
 
@@ -72,6 +95,8 @@ def enable_gpu(device_type: str = "CUDA", device_name: str = "", tile_size=2048,
     bpy.context.scene.render.border_min_y = 0.0
     bpy.context.scene.render.border_max_x = 1.0
     bpy.context.scene.render.border_max_y = 1.0
+
+    bpy.context.scene.render.use_compositing = True
 
 
 def print_render_settings():
@@ -139,22 +164,37 @@ def set_png_compression():
     print(f"PNG compression disabled (set to {image_settings.compression}).")
 
 
-def change_asset_path(wrong_path="please provide the org asset path", correct_path="", in_folder="./"):
-    hash_value = hashlib.md5(wrong_path.encode()).hexdigest()
-    check_fname = ".asset-path-changed-completed"+hash_value
-    file_path = Path(check_fname)
-    if file_path.exists():  # Negation check
-        return
-
+def change_asset_path(wrong_path="please provide the org asset path", correct_path="", folder_file="./"):
     print(f"Changing assets paths")
+
     # Check if the correct path exists
     if os.path.exists(correct_path):
-        # List all .blend files in the specified folder
-        blend_files = [f for f in os.listdir(in_folder) if f.endswith(".blend")]
+        blend_files = []
+        folder_file_path = Path(folder_file)
+
+        if folder_file_path.is_file():
+            print("It's a file.")
+            blend_files = [folder_file]
+        elif folder_file_path.is_dir():
+            print("It's a directory.")
+            # List all .blend files in the specified folder
+            blend_files = [f for f in os.listdir(folder_file) if f.endswith(".blend")]
+        else:
+            print("Path folder_file does not exist.")
+            return
 
         # Loop through all .blend files in the folder
         for blend_file in blend_files:
-            blend_file_path = os.path.join(in_folder, blend_file)
+
+            value=wrong_path.encode()+blend_file.encode()
+            hash_value = hashlib.md5(value).hexdigest()
+            check_fname = ".asset-path-changed-completed-" + hash_value
+            file_path = Path(check_fname)
+            if file_path.exists():  # Negation check
+                print(f"Already completed library: {wrong_path}")
+                return
+
+            blend_file_path = os.path.join(folder_file, blend_file)
             print(f"Processing: {blend_file_path}")
 
             # Open the current .blend file
@@ -178,25 +218,65 @@ def change_asset_path(wrong_path="please provide the org asset path", correct_pa
             bpy.ops.wm.save_mainfile()
             print(f"Saved updated file: {blend_file_path}")
             # Create an empty file
-            file_path.touch()  # This creates the empty file if it doesn't exist
+            if not file_path.exists():
+                file_path.write_text(f"{wrong_path}\n{blend_file}", encoding="utf-8")
     else:
         print(f"Error: The path '{correct_path}' does not exist.")
 
 
-src_blend_path = "/home/runner/to-render/tests"  # Update to your folder containing .blend files
-materials_file = "/home/runner/base_scene/interier/materials.blend"  # Change this to your actual folder
-change_asset_path("materials.blend", materials_file, src_blend_path)
+# for lib in bpy.data.libraries:
+#     linked_library=os.path.basename(lib.filepath)
+#     print(f"linked_library: {linked_library}")
+#     found=False
+#     library_path= libraries_path + linked_library
+#
+#     print(f"searching for {linked_library} in {library_path}")
+#     if os.path.exists(library_path):
+#         print(f"library exist in libraries_path:{library_path}")
+#         found = True
+#         change_asset_path(linked_library, library_path, src_blend_path)
+#
+#     if found is False:
+#         print(f"linked_library not found: {linked_library}")
 
-# do material replacement
-src_blend_path = "/home/runner/to-render"  # Update to your folder containing .blend files
-materials_file = "/home/runner/base_scene/interier/materials.blend"  # Change this to your actual folder
-change_asset_path("materials.blend", materials_file, src_blend_path)
 
-materials_file = "/home/runner/base_scene/interier/material-zidle.blend"  # Change this to your actual folder
-change_asset_path("material-zidle.blend", materials_file, src_blend_path)
+# First: collect all needed library info safely into a list
+libraries_to_process = [
+    {
+        "original": lib,
+        "name": os.path.basename(lib.filepath),
+        "current_path": lib.filepath
+    }
+    for lib in bpy.data.libraries
+]
 
-materials_file = "/home/runner/base_scene/interier/binder-collections.blend"  # Change this to your actual folder
-change_asset_path("binder-collections.blend", materials_file, src_blend_path)
+# Then: process libraries from the collected list
+for entry in libraries_to_process:
+    linked_library = entry["name"]
+    print(f"linked_library: {linked_library}")
+
+    library_path = os.path.join(libraries_path, linked_library)
+
+    print(f"searching for {linked_library} in {library_path}")
+
+    if os.path.exists(library_path):
+        print(f"library exists in libraries_path: {library_path}")
+        change_asset_path(linked_library, library_path, src_blend_path)
+    else:
+        print(f"linked_library not found: {linked_library}")
+
+# materials_file = libraries_path + "materials.blend"  # Change this to your actual folder
+# change_asset_path("materials.blend", materials_file, src_blend_path)
+#
+# # do material replacement
+# materials_file = libraries_path + "materials.blend"  # Change this to your actual folder
+# change_asset_path("materials.blend", materials_file, src_blend_path)
+#
+# materials_file = libraries_path + "material-zidle.blend"  # Change this to your actual folder
+# change_asset_path("material-zidle.blend", materials_file, src_blend_path)
+#
+# materials_file = libraries_path + "binder-collections.blend"  # Change this to your actual folder
+# change_asset_path("binder-collections.blend", materials_file, src_blend_path)
 
 # Load the original file
 bpy.ops.wm.open_mainfile(filepath=mainBlendFile)
@@ -217,6 +297,9 @@ if "--device-name" in sys.argv:
 
 print(f"device_name {device_name}")
 
+# Enable GPU rendering
+enable_gpu(device_type, device_name, 512, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
+# enable_gpu("OPTIX", 1920, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
 
 # checkrx and ry
 if "--rx" in sys.argv and "--ry" in sys.argv:
@@ -233,12 +316,20 @@ if "--samples" in sys.argv:
     if arg_index < len(sys.argv):
         samples = int(sys.argv[arg_index])
 
+# check percentage
+if "--percent" in sys.argv:
+    arg_index = sys.argv.index("--percent") + 1
+    if arg_index < len(sys.argv):
+        resolution_percentage = int(sys.argv[arg_index])
+
+
+# check denoise
+if "--denoise" in sys.argv:
+    arg_index = sys.argv.index("--denoise") + 1
+    if arg_index < len(sys.argv):
+        bpy.context.scene.cycles.use_denoising = sys.argv[arg_index].strip().lower() == 'true'
 
 print(f"device_name {device_name}")
-
-# Enable GPU rendering
-enable_gpu(device_type, device_name, 512, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
-# enable_gpu("OPTIX", 1920, 'ACCURATE', 'RGB_ALBEDO_NORMAL')
 
 # Read command-line arguments to get start and end frames
 argv = sys.argv
@@ -279,13 +370,12 @@ else:
     else:
         print("Error: No camera found in the scene.")
 
-# Set the rendering engine to Cycles
+# Set the rendering defaults
 scene = bpy.context.scene
 render = bpy.context.scene.render
 render.engine = "CYCLES"
 
-
-render.resolution_percentage = 100
+render.resolution_percentage = resolution_percentage
 render.resolution_x = resolution_x
 render.resolution_y = resolution_y
 scene.cycles.samples = samples
@@ -388,11 +478,18 @@ bpy.ops.render.render(animation=True)
 
 
 # blender --factory-startup -noaudio -b to-render/gate_1_1.blend -s 621 -e 621 -y --python scripts/render_cycles.py -- --camera main
-# blender --factory-startup -noaudio -b to-render/gate_1_1.blend -s 0 -e 700 -y --python scripts/render_cycles.py -- --camera main
+# blender --factory-startup -noaudio -b to-render/gate_1_1.blend -s 566 -e 566 -y --python scripts/render_cycles.py -- --camera main
 
 #  ffmpeg -framerate 30 -i %04d.png -c:v prores_ks -profile:v 4 -pix_fmt yuv444p10le -r 30 output.mov
 
+#  blender --factory-startup -noaudio -b to-render/CUBE_WORK_MF_all_variations_CUBE.blend -s 10 -e 10 -y --python scripts/render_cycles.py -- --camera main --rx 768 --ry 1024 --percent 50
+# blender --factory-startup -noaudio -b to-render/CUBE_WORK_MINI_NF_ALL.blend -s 0 -e 0 -y --python scripts/render_cycles.py -- --camera main --rx 768 --ry 1024 --percent 300 --denoise False --samples 300
+
 # TODO
-# resplution as argument
 # blender render progress
-# render to uniq folders when run multiple bg processes
+
+# --percent
+# 500 - -denoise
+# False - -samples
+# 200 - -device - type
+# OPTIX
