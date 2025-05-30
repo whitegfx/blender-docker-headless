@@ -9,7 +9,7 @@ if [ -n "${ADDONS_URL:-}" ]; then
 
   # Download the ZIP file
   echo "[INFO] Downloading ADDONS_URL file from $ADDONS_URL..."
-  wget -N -O "$TEMP_ZIP" "$ADDONS_URL"
+  wget -O "$TEMP_ZIP" "$ADDONS_URL"
 
   rm -rf "$TEMP_EXTRACT_DIR"  # Delete the old extraction folder
   mkdir -p "$TEMP_EXTRACT_DIR"  # Recreate the folder

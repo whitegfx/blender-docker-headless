@@ -9,7 +9,7 @@ if [ -n "${DATA_TWO_URL:-}" ]; then
 
   # Download the ZIP file
   echo "[INFO] Downloading DATA_URL file from $DATA_TWO_URL..."
-  wget -N -O "$TEMP_ZIP" "$DATA_TWO_URL"
+  wget -O "$TEMP_ZIP" "$DATA_TWO_URL"
 
   rm -rf "$TEMP_EXTRACT_DIR"  # Delete the old extraction folder
   mkdir -p "$TEMP_EXTRACT_DIR"  # Recreate the folder

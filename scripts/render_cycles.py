@@ -322,12 +322,17 @@ if "--percent" in sys.argv:
     if arg_index < len(sys.argv):
         resolution_percentage = int(sys.argv[arg_index])
 
-
 # check denoise
 if "--denoise" in sys.argv:
     arg_index = sys.argv.index("--denoise") + 1
     if arg_index < len(sys.argv):
         bpy.context.scene.cycles.use_denoising = sys.argv[arg_index].strip().lower() == 'true'
+
+# check rgba
+if "--rgba" in sys.argv:
+    arg_index = sys.argv.index("--rgba") + 1
+    if arg_index < len(sys.argv):
+        bpy.context.scene.render.image_settings.color_mode = 'RGBA' if sys.argv[arg_index].strip().lower() == 'true' else 'RGB'
 
 print(f"device_name {device_name}")
 
@@ -483,7 +488,7 @@ bpy.ops.render.render(animation=True)
 #  ffmpeg -framerate 30 -i %04d.png -c:v prores_ks -profile:v 4 -pix_fmt yuv444p10le -r 30 output.mov
 
 #  blender --factory-startup -noaudio -b to-render/CUBE_WORK_MF_all_variations_CUBE.blend -s 10 -e 10 -y --python scripts/render_cycles.py -- --camera main --rx 768 --ry 1024 --percent 50
-# blender --factory-startup -noaudio -b to-render/CUBE_WORK_MINI_NF_ALL.blend -s 0 -e 0 -y --python scripts/render_cycles.py -- --camera main --rx 768 --ry 1024 --percent 300 --denoise False --samples 300
+# blender --factory-startup -noaudio -b to-render/ -s 0 -e 0 -y --python scripts/render_cycles.py -- --camera main --rx 768 --ry 1024 --percent 500 --denoise False --samples 300 --rgba True --device-type OPTIX
 
 # TODO
 # blender render progress

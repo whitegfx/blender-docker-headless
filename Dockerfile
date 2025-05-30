@@ -43,7 +43,7 @@ RUN apt-get -q install -y --no-install-recommends --fix-missing \
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Add build arguments
-ARG BLENDER_VERSION=3.6.21
+ARG BLENDER_VERSION=3.6.22
 ARG BLENDER_MIRROR_URL=https://download.blender.org/release
 
 # Update Blender installation to use both arguments
