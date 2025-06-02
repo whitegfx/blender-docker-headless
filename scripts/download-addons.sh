@@ -2,14 +2,22 @@
 
 set -uxo pipefail
 
+TEMP_PATH="/tmp"
+USR_HOME=/home/runner
+
 if [ -n "${ADDONS_URL:-}" ]; then
   # Define variables
-  TEMP_ZIP="/tmp/addons.zip"
-  TEMP_EXTRACT_DIR="/tmp/unzip_addon_temp"
+  ZIP_NAME="addons.zip"
+  TEMP_ZIP="${TEMP_PATH}/${ZIP_NAME}"
+  TEMP_EXTRACT_DIR="${TEMP_PATH}/unzip_addon_temp"
+
+  # Extract components
+  DIR=$(dirname "$TEMP_ZIP")
+  FILE=$(basename "$TEMP_ZIP")
 
   # Download the ZIP file
   echo "[INFO] Downloading ADDONS_URL file from $ADDONS_URL..."
-  wget -O "$TEMP_ZIP" "$ADDONS_URL"
+  aria2c -x 10 -s 10 --dir="$DIR" --out="$FILE" "$ADDONS_URL"
 
   rm -rf "$TEMP_EXTRACT_DIR"  # Delete the old extraction folder
   mkdir -p "$TEMP_EXTRACT_DIR"  # Recreate the folder
@@ -23,7 +31,7 @@ if [ -n "${ADDONS_URL:-}" ]; then
   fi
 
   rm "$TEMP_ZIP"
-  touch /home/runner/.download-addons-complete
+  touch "${USR_HOME}/.download-addons-complete"
   echo "[INFO] Download and extraction complete!"
 else
     echo "[WARN] ADDONS_URL environment variable not set. Skipping file download."

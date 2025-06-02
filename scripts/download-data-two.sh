@@ -2,14 +2,22 @@
 
 set -uxo pipefail
 
+TEMP_PATH="/tmp"
+USR_HOME=/home/runner
+
 if [ -n "${DATA_TWO_URL:-}" ]; then
   # Define variables
-  TEMP_ZIP="/tmp/data_two.zip"
+  ZIP_NAME="data_two.zip"
+  TEMP_ZIP="${TEMP_PATH}/${ZIP_NAME}"
   TEMP_EXTRACT_DIR="/tmp/unzip_data_two_temp"
+
+  # Extract components
+  DIR=$(dirname "$TEMP_ZIP")
+  FILE=$(basename "$TEMP_ZIP")
 
   # Download the ZIP file
   echo "[INFO] Downloading DATA_URL file from $DATA_TWO_URL..."
-  wget -O "$TEMP_ZIP" "$DATA_TWO_URL"
+  aria2c -x 10 -s 10 --dir="$DIR" --out="$FILE" "$DATA_TWO_URL"
 
   rm -rf "$TEMP_EXTRACT_DIR"  # Delete the old extraction folder
   mkdir -p "$TEMP_EXTRACT_DIR"  # Recreate the folder
@@ -21,7 +29,7 @@ if [ -n "${DATA_TWO_URL:-}" ]; then
   cp -r "$TEMP_EXTRACT_DIR/runner/." /home/runner/ 2>/dev/null || true
 
   rm "$TEMP_ZIP"
-  touch /home/runner/.download-data-two-complete
+  touch "${USR_HOME}/.download-data-two-complete"
   echo "[INFO] Download and extraction complete!"
 else
     echo "[WARN] DATA_TWO_URL environment variable not set. Skipping file download."

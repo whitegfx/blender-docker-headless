@@ -35,7 +35,8 @@ RUN apt-get update && apt-get -q install -y --no-install-recommends --fix-missin
     pkg-config \
     wget \
     python3 \
-    python3-pip
+    python3-pip \
+    aria2
 RUN apt-get -q install -y --no-install-recommends --fix-missing \
     x11proto-dev \
     x11proto-gl-dev \

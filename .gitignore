@@ -165,3 +165,7 @@ cython_debug/
 /to-render/libraries/*
 /to-render/tests/*
 !/to-render/tests/cube.blend
+/tmp
+to-render.zip
+to-render/CUBE_WORK_MINI_NF_S1.blend
+.DS_Store

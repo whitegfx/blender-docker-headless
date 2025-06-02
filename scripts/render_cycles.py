@@ -21,9 +21,9 @@ if platform.system() == "Linux":
 elif platform.system() == "Darwin":
     # macOS-specific code (e.g. fallback to CPU rendering or Metal)
     print("Running on macOS")
-    output_path = "/Users/mbpro/Documents/bitbucket/blender-docker-headless/output/frames/"
-    libraries_path = "/Users/mbpro/Documents/bitbucket/blender-docker-headless/to-render/libraries/"
-    src_blend_path = "/Users/mbpro/Documents/bitbucket/blender-docker-headless/to-render/"
+    output_path = "/Users/macs/Documents/GitHub/blender-docker-headless/output/frames/"
+    libraries_path = "/Users/macs/Documents/GitHub/blender-docker-headless/to-render/libraries/"
+    src_blend_path = "/Users/macs/Documents/GitHub/blender-docker-headless/to-render/"
     # Setup for macOS (e.g., Metal or CPU rendering)
 else:
     print("Unsupported OS")
