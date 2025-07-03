@@ -59,6 +59,9 @@ USR_HOME=/home/runner
 #    }
 #fi
 
+filebrowser config init
+filebrowser users add admin adminpassword --perm.admin
+# --scope /home/runner
 nohup filebrowser -a 0.0.0.0 -r "$FILEBROWSER_DIRECTORY" -p 8080 &
 
 echo "[INFO] All started successfully!"

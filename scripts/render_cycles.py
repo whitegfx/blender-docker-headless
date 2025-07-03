@@ -385,14 +385,29 @@ render.resolution_x = resolution_x
 render.resolution_y = resolution_y
 scene.cycles.samples = samples
 
-addon_name = "ANIMAX"  # Replace with the actual add-on module name
+# List of add-ons you want to enable
+addon_names = ['ANIMAX', 'Proxy-Tracker-Auto-Update']
 
-# Ensure the add-on is installed
-if addon_name not in bpy.context.preferences.addons:
-    bpy.ops.preferences.addon_enable(module=addon_name)
-    print(f"Activated add-on: {addon_name}")
-else:
-    print(f"Add-on {addon_name} is already enabled.")
+for addon_name in addon_names:
+    if addon_name not in bpy.context.preferences.addons:
+        try:
+            bpy.ops.preferences.addon_enable(module=addon_name)
+            print(f"Activated add-on: {addon_name}")
+        except Exception as e:
+            print(f"Failed to activate add-on: {addon_name} - {e}")
+    else:
+        print(f"Add-on {addon_name} is already enabled.")
+
+    # After enabling (or if already enabled), print the file path for manual register
+    addon = bpy.context.preferences.addons.get(addon_name)
+    if addon:
+        try:
+            mod = __import__(addon.module)
+            print(f"Add-on '{addon_name}' module path: {mod.__file__}")
+        except Exception as e:
+            print(f"Failed to get module file path for add-on '{addon_name}': {e}")
+    else:
+        print(f"Add-on '{addon_name}' not found in enabled addons.")
 
 # List all enabled addons
 enabled_addons = bpy.context.preferences.addons.keys()
@@ -401,6 +416,7 @@ enabled_addons = bpy.context.preferences.addons.keys()
 print("Enabled Add-ons:")
 for addon in enabled_addons:
     print(f"- {addon}")
+
 
 # Set the output file path
 if not os.path.exists(output_path):
@@ -490,6 +506,10 @@ bpy.ops.render.render(animation=True)
 #  blender --factory-startup -noaudio -b to-render/CUBE_WORK_MF_all_variations_CUBE.blend -s 10 -e 10 -y --python scripts/render_cycles.py -- --camera main --rx 768 --ry 1024 --percent 50
 # blender --factory-startup -noaudio -b to-render/ -s 0 -e 0 -y --python scripts/render_cycles.py -- --camera main --rx 768 --ry 1024 --percent 500 --denoise False --samples 300 --rgba True --device-type OPTIX
 
+# blender --factory-startup -noaudio -b to-render/ -s 0 -e 0 -y --python scripts/render_cycles.py -- --camera main --rx 2560 --ry 1440 --percent 100 --denoise True --samples 200 --rgba False --device-type OPTIX
+
+# blender --factory-startup -noaudio -b to-render/cube.blend -s 0 -e 6 -y --python scripts/render_cycles.py -- --camera main --rx 1024 --ry 1024 --percent 50 --denoise False --samples 50 --rgba False --device-type METAL
+
 # TODO
 # blender render progress
 
@@ -498,3 +518,5 @@ bpy.ops.render.render(animation=True)
 # False - -samples
 # 200 - -device - type
 # OPTIX
+
+# DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --build-arg FILEBROWSER_USER=admin --build-arg FILEBROWSER_USER=admin . --tag elensar/blender-headless:latest --push
